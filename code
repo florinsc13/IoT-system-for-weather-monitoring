@@ -1,0 +1,84 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <BH1750.h>
+
+
+#define I2C_SDA 21 
+#define I2C_SCL 22 
+
+
+#define UV_PIN 32    
+#define RAIN_PIN 33  
+#define LDR_PIN 35   
+
+
+#define DUST_LED_PIN 4  
+#define DUST_OUT_PIN 2  
+
+Adafruit_BME280 bme; 
+BH1750 lightMeter;
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+  
+  Serial.println("Initializing ESP32 Sensor Node...");
+
+
+  Wire.begin(I2C_SDA, I2C_SCL);
+
+
+  if (!bme.begin(0x76, &Wire)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+  } else {
+    Serial.println("BME280 Initialized.");
+  }
+
+
+  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x23, &Wire)) {
+    Serial.println("BH1750 Initialized.");
+  } else {
+    Serial.println("Error initializing BH1750");
+  }
+
+
+  pinMode(DUST_LED_PIN, OUTPUT);
+  digitalWrite(DUST_LED_PIN, LOW); 
+}
+
+void loop() {
+  Serial.println("\n--- Reading Sensors ---");
+
+
+  float temperature = bme.readTemperature();
+  float humidity = bme.readHumidity();
+  float pressure = bme.readPressure() / 100.0F; 
+  float lux = lightMeter.readLightLevel();
+
+  Serial.printf("Temperature: %.2f *C\n", temperature);
+  Serial.printf("Humidity: %.2f %%\n", humidity);
+  Serial.printf("Pressure: %.2f hPa\n", pressure);
+  Serial.printf("Light (BH1750): %.2f lx\n", lux);
+
+ 
+  int uvValue = analogRead(UV_PIN);
+  int rainValue = analogRead(RAIN_PIN); 
+  int ldrValue = analogRead(LDR_PIN);
+
+  Serial.printf("UV Raw Value: %d\n", uvValue);
+  Serial.printf("Rain Raw Value: %d\n", rainValue);
+  Serial.printf("LDR Raw Value: %d\n", ldrValue);
+
+ 
+  digitalWrite(DUST_LED_PIN, HIGH); 
+  delayMicroseconds(280);           
+  int dustRaw = analogRead(DUST_OUT_PIN); 
+  delayMicroseconds(40);            
+  digitalWrite(DUST_LED_PIN, LOW);  
+  delayMicroseconds(9680);          
+
+  Serial.printf("Dust Raw Value: %d\n", dustRaw);
+
+  delay(5000); 
+}
